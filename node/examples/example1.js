@@ -31,7 +31,7 @@ var client = new TChannel();
 server.handler.register('func 1', function (req, res) {
     console.log('func 1 responding with a small delay:' + req.arg2.toString() + ' 2:' + req.arg3.toString());
     setTimeout(function() {
-        res.sendOk('result', 'indeed it did');
+        res.sendOk('result', '{"RESULT":"SUCCESS"}');
     }, Math.random() * 1000);
 });
 // err response
