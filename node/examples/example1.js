@@ -21,11 +21,16 @@
 var TChannel = require('../index.js');
 var EndpointHandler = require('../endpoint-handler.js');
 var CountedReadySignal = require('ready-signal/counted');
+var myLocalIp = require('my-local-ip');
 
 var server = new TChannel({
     handler: EndpointHandler()
 });
 var client = new TChannel();
+
+var ip = myLocalIp() || '127.0.0.1';
+
+console.log(ip);
 
 // normal response
 server.handler.register('func 1', function (req, res) {
@@ -45,13 +50,15 @@ var listening = ready(function (err) {
         throw err;
     }
 
+    var serverIp = ip + ':4040';
+
     client
-        .request({host: '127.0.0.1:4040'})
+        .request({host: serverIp})
         .send('func 1', "arg 1", "arg 2", function (err, res) {
             console.log('normal res: ' + res.arg2.toString() + ' ' + res.arg3.toString());
         });
     client
-        .request({host: '127.0.0.1:4040'})
+        .request({host: serverIp})
         .send('func 2', "arg 1", "arg 2", function (err, res) {
             console.log('err res: ' + res.ok +
                 ' message: ' + String(res.arg3));
@@ -59,5 +66,5 @@ var listening = ready(function (err) {
 
 });
 
-server.listen(4040, '127.0.0.1', ready.signal);
-client.listen(4041, '127.0.0.1', ready.signal);
+server.listen(4040, ip, ready.signal);
+client.listen(4041, ip, ready.signal);
