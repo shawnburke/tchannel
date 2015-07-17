@@ -554,17 +554,19 @@ func (c *Connection) protocolError(err error) error {
 // withStateLock performs an action with the connection state mutex locked
 func (c *Connection) withStateLock(f func() error) error {
 	c.stateMut.Lock()
-	defer c.stateMut.Unlock()
+	err := f()
+	c.stateMut.Unlock()
 
-	return f()
+	return err
 }
 
 // withStateRLock an action with the connection state mutex held in a read lock
 func (c *Connection) withStateRLock(f func() error) error {
 	c.stateMut.RLock()
-	defer c.stateMut.RUnlock()
+	err := f()
+	c.stateMut.RUnlock()
 
-	return f()
+	return err
 }
 
 // readFrames is the loop that reads frames from the network connection and

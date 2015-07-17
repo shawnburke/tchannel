@@ -171,9 +171,10 @@ func (ch *Channel) Register(h Handler, operationName string) {
 // PeerInfo returns the current peer info for the channel
 func (ch *Channel) PeerInfo() LocalPeerInfo {
 	ch.mutable.mut.RLock()
-	defer ch.mutable.mut.RUnlock()
+	peerInfo := ch.mutable.peerInfo
+	ch.mutable.mut.RUnlock()
 
-	return ch.mutable.peerInfo
+	return peerInfo
 }
 
 func (ch *Channel) createCommonStats() {
@@ -300,8 +301,9 @@ func (ch *Channel) Logger() Logger {
 // Closed returns whether this channel has been closed with .Close()
 func (ch *Channel) Closed() bool {
 	ch.mutable.mut.RLock()
-	defer ch.mutable.mut.RUnlock()
-	return ch.mutable.closed
+	closed := ch.mutable.closed
+	ch.mutable.mut.RUnlock()
+	return closed
 }
 
 // Close closes the channel including all connections to any active peers.

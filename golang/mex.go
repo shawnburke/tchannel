@@ -167,9 +167,8 @@ func (mexset *messageExchangeSet) removeExchange(msgID uint32) {
 	mexset.log.Debugf("Removing %s message exchange %d", mexset.name, msgID)
 
 	mexset.mut.Lock()
-	defer mexset.mut.Unlock()
-
 	delete(mexset.exchanges, msgID)
+	mexset.mut.Unlock()
 }
 
 // forwardPeerFrame forwards a frame from the peer to the appropriate message
