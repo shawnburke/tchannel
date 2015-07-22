@@ -22,17 +22,17 @@
 
 module.exports.PreferOutgoingHandler = PreferOutgoingHandler;
 
-var QOS_UNCONNECTED = 0;
-var QOS_ONLY_INCOMING = 1;
-var QOS_FRESH_OUTGOING = 2;
-var QOS_READY_OUTGOING = 3;
-
 function PreferOutgoingHandler(peer) {
     var self = this;
 
     self.peer = peer;
     self.lastQOS = self.getQOS();
 }
+
+PreferOutgoingHandler.UNCONNECTED = 0;
+PreferOutgoingHandler.ONLY_INCOMING = 1;
+PreferOutgoingHandler.FRESH_OUTGOING = 2;
+PreferOutgoingHandler.READY_OUTGOING = 3;
 
 PreferOutgoingHandler.prototype.getQOS = function getQOS() {
     var self = this;
@@ -41,13 +41,13 @@ PreferOutgoingHandler.prototype.getQOS = function getQOS() {
     var outconn = self.peer.getOutConnection();
 
     if (!inconn && !outconn) {
-        return QOS_UNCONNECTED;
+        return PreferOutgoingHandler.UNCONNECTED;
     } else if (!outconn || outconn.direction !== 'out') {
-        return QOS_ONLY_INCOMING;
+        return PreferOutgoingHandler.ONLY_INCOMING;
     } else if (outconn.remoteName === null) {
-        return QOS_FRESH_OUTGOING;
+        return PreferOutgoingHandler.FRESH_OUTGOING;
     } else {
-        return QOS_READY_OUTGOING;
+        return PreferOutgoingHandler.READY_OUTGOING;
     }
 };
 
@@ -63,16 +63,16 @@ PreferOutgoingHandler.prototype.shouldRequest = function shouldRequest() {
         self.lastQOS = qos;
     }
     switch (qos) {
-        case QOS_ONLY_INCOMING:
+        case PreferOutgoingHandler.ONLY_INCOMING:
             if (!self.peer.channel.destroyed) {
                 self.peer.connect();
             }
             /* falls through */
-        case QOS_UNCONNECTED:
+        case PreferOutgoingHandler.UNCONNECTED:
             /* falls through */
-        case QOS_FRESH_OUTGOING:
+        case PreferOutgoingHandler.FRESH_OUTGOING:
             return 0.1 + random * 0.3;
-        case QOS_READY_OUTGOING:
+        case PreferOutgoingHandler.READY_OUTGOING:
             return 0.4 + random * 0.6;
     }
 };
