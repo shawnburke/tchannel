@@ -47,6 +47,7 @@ function TChannelPeer(channel, hostPort, options) {
 
     assert(hostPort !== '0.0.0.0:0', 'Cannot create ephemeral peer');
 
+    self.scoreStrategy = self.options.scoreStrategy || PreferOutgoingHandler;
     self.channel = channel;
     self.logger = self.channel.logger;
     self.timers = self.channel.timers;
@@ -65,7 +66,7 @@ function TChannelPeer(channel, hostPort, options) {
         maxErrorRate: self.options.maxErrorRate,
         minimumRequests: self.options.minimumRequests,
         probation: self.options.probation,
-        nextHandler: new PreferOutgoingHandler(self)
+        nextHandler: self.scoreStrategy
     });
 
     if (self.options.initialState) {
@@ -102,6 +103,14 @@ function TChannelPeer(channel, hostPort, options) {
 }
 
 inherits(TChannelPeer, EventEmitter);
+
+TChannelPeer.prototype.setScoreStrategy = function setScoreStrategy(scoreStrategy) {
+    var self = this;
+
+    self.scoreStrategy = self.options.scoreStrategy || PreferOutgoingHandler;
+    self.stateOptions.nextHandler = self.scoreStrategy;
+    self.state.nextHandler = self.scoreStrategy;
+};
 
 TChannelPeer.prototype.invalidateScore = function invalidateScore() {
     var self = this;
