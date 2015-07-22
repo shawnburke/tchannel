@@ -30,6 +30,7 @@ var TChannelConnection = require('./connection');
 var errors = require('./errors');
 var states = require('./states');
 var Request = require('./request');
+var PreferOutgoingHandler = require('./peer_score_straetiges.js').PreferOutgoingHandler;
 
 var DEFAULT_REPORT_INTERVAL = 1000;
 
@@ -413,62 +414,6 @@ TChannelPeer.prototype._maybeInvalidateScore = function _maybeInvalidateScore() 
     }
 
     self.invalidateScore();
-};
-
-var QOS_UNCONNECTED = 0;
-var QOS_ONLY_INCOMING = 1;
-var QOS_FRESH_OUTGOING = 2;
-var QOS_READY_OUTGOING = 3;
-
-function PreferOutgoingHandler(peer) {
-    var self = this;
-
-    self.peer = peer;
-    self.lastQOS = self.getQOS();
-}
-
-PreferOutgoingHandler.prototype.getQOS = function getQOS() {
-    var self = this;
-
-    var inconn = self.peer.getInConnection();
-    var outconn = self.peer.getOutConnection();
-
-    if (!inconn && !outconn) {
-        return QOS_UNCONNECTED;
-    } else if (!outconn || outconn.direction !== 'out') {
-        return QOS_ONLY_INCOMING;
-    } else if (outconn.remoteName === null) {
-        return QOS_FRESH_OUTGOING;
-    } else {
-        return QOS_READY_OUTGOING;
-    }
-};
-
-// Consulted depending on the peer state
-PreferOutgoingHandler.prototype.shouldRequest = function shouldRequest() {
-    var self = this;
-
-    // space:
-    //   [0.1, 0.4)  peers with no identified outgoing connection
-    //   [0.4, 1.0)  identified outgoing connections
-    var random = self.peer.outPendingWeightedRandom();
-    var qos = self.getQOS();
-    if (self.lastQOS !== qos) {
-        self.lastQOS = qos;
-    }
-    switch (qos) {
-        case QOS_ONLY_INCOMING:
-            if (!self.peer.channel.destroyed) {
-                self.peer.connect();
-            }
-            /* falls through */
-        case QOS_UNCONNECTED:
-            /* falls through */
-        case QOS_FRESH_OUTGOING:
-            return 0.1 + random * 0.3;
-        case QOS_READY_OUTGOING:
-            return 0.4 + random * 0.6;
-    }
 };
 
 module.exports = TChannelPeer;
