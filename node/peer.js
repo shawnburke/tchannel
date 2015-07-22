@@ -30,7 +30,7 @@ var TChannelConnection = require('./connection');
 var errors = require('./errors');
 var states = require('./states');
 var Request = require('./request');
-var PreferOutgoingHandler = require('./peer_score_straetiges.js').PreferOutgoingHandler;
+var PreferOutgoing = require('./peer_score_straetiges.js').PreferOutgoing;
 
 var DEFAULT_REPORT_INTERVAL = 1000;
 
@@ -47,7 +47,7 @@ function TChannelPeer(channel, hostPort, options) {
 
     assert(hostPort !== '0.0.0.0:0', 'Cannot create ephemeral peer');
 
-    self.scoreStrategy = self.options.scoreStrategy || PreferOutgoingHandler;
+    self.scoreStrategy = self.options.scoreStrategy || PreferOutgoing;
     self.channel = channel;
     self.logger = self.channel.logger;
     self.timers = self.channel.timers;
