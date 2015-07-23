@@ -161,7 +161,13 @@ Circuits.prototype.handleRequest = function handleRequest(req, buildRes, nextHan
     if (!serviceName) {
         return buildRes().sendError('BadRequest', 'All requests must have a service name');
     }
-    return req.withArg1(function withArg1() {
+
+    return req.withArg1(function withArg1(err) {
+        if (err) {
+            // TODO: classify error?
+            return buildRes().sendError('UnexpectedError', 'unable to buffer arg1');
+        }
+
         var circuit = self.getCircuit(callerName, serviceName, String(req.arg1));
         return circuit.handleRequest(req, buildRes, nextHandler);
     });
