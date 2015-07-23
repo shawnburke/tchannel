@@ -171,7 +171,12 @@ Circuits.prototype.handleRequest = function handleRequest(req, buildRes, nextHan
         var arg1 = String(rawArg1);
         var circuit = self.getCircuit(callerName, serviceName, arg1);
 
-        return circuit.handleRequest(req, buildRes, nextHandler);
+        if (circuit.state.shouldRequest()) {
+            buildRes = circuit.monitorRequest(req, buildRes);
+            return nextHandler.handleRequest(req, buildRes);
+        } else {
+            return buildRes().sendError('Declined', 'Service is not healthy');
+        }
     });
 };
 
@@ -210,16 +215,6 @@ function Circuit(callerName, serviceName, endpointName) {
 inherits(Circuit, EventEmitter);
 
 Circuit.prototype.setState = StateMachine.prototype.setState;
-
-Circuit.prototype.handleRequest = function handleRequest(req, buildRes, nextHandler) {
-    var self = this;
-    if (self.state.shouldRequest()) {
-        buildRes = self.monitorRequest(req, buildRes);
-        return nextHandler.handleRequest(req, buildRes);
-    } else {
-        return buildRes().sendError('Declined', 'Service is not healthy');
-    }
-};
 
 Circuit.prototype.monitorRequest = function monitorRequest(req, buildRes) {
     var self = this;
