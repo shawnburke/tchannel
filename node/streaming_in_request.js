@@ -24,7 +24,10 @@ var parallel = require('run-parallel');
 var InRequest = require('./in_request');
 var inherits = require('util').inherits;
 
+var States = require('./reqres_states');
 var InArgStream = require('./argstream').InArgStream;
+
+var emptyBuffer = Buffer(0);
 
 function StreamingInRequest(id, options) {
     var self = this;
@@ -32,7 +35,8 @@ function StreamingInRequest(id, options) {
 
     self.streamed = true;
     self._argstream = InArgStream();
-    self.arg1 = self._argstream.arg1;
+    self.arg1 = emptyBuffer;
+    self.endpoint = null;
     self.arg2 = self._argstream.arg2;
     self.arg3 = self._argstream.arg3;
 
@@ -52,14 +56,39 @@ inherits(StreamingInRequest, InRequest);
 
 StreamingInRequest.prototype.type = 'tchannel.incoming-request.streaming';
 
-StreamingInRequest.prototype.handleFrame = function handleFrame(parts) {
+StreamingInRequest.prototype.handleFrame = function handleFrame(parts, isLast) {
     var self = this;
-    self._argstream.handleFrame(parts);
+
+    if (self.state === States.Initial) {
+        if (parts.length < 2) {
+            // TODO: typed error
+            return new Error('all of arg1 must be in the first frame');
+        }
+
+        self.arg1 = parts.shift() || emptyBuffer;
+        self.endpoint = String(self.arg1);
+        if (self.span) {
+            self.span.name = self.endpoint;
+        }
+        self.state = States.Streaming;
+    } else if (self.state !== States.Streaming) {
+        // TODO: typed error
+        return new Error('unknown frame handling state');
+    }
+
+    self._argstream.handleFrame(parts, isLast);
+
+    if (!isLast && self.state !== States.Streaming) {
+        // TODO: typed error
+        return new Error('unknown frame handling state');
+    }
+
+    return null;
 };
 
 StreamingInRequest.prototype.withArg1 = function withArg1(callback) {
     var self = this;
-    self.arg1.onValueReady(callback);
+    callback(null, self.arg1);
 };
 
 StreamingInRequest.prototype.withArg2 = function withArg2(callback) {
