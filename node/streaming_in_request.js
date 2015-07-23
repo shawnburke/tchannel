@@ -27,13 +27,14 @@ var inherits = require('util').inherits;
 var States = require('./reqres_states');
 var InArgStream = require('./argstream').InArgStream;
 
+var emptyBuffer = Buffer(0);
+
 function StreamingInRequest(id, options) {
     var self = this;
     InRequest.call(self, id, options);
 
     self.streamed = true;
     self._argstream = InArgStream();
-    self.arg1 = self._argstream.arg1;
     self.arg2 = self._argstream.arg2;
     self.arg3 = self._argstream.arg3;
 
@@ -62,6 +63,11 @@ StreamingInRequest.prototype.handleFrame = function handleFrame(parts, isLast) {
             return new Error('all of arg1 must be in the first frame');
         }
 
+        self.arg1 = parts.shift() || emptyBuffer;
+        self.endpoint = String(self.arg1);
+        if (self.span) {
+            self.span.name = self.endpoint;
+        }
         self.state = States.Streaming;
     } else if (self.state !== States.Streaming) {
         // TODO: typed error
@@ -83,7 +89,7 @@ StreamingInRequest.prototype.handleFrame = function handleFrame(parts, isLast) {
 
 StreamingInRequest.prototype.withArg1 = function withArg1(callback) {
     var self = this;
-    self.arg1.onValueReady(callback);
+    callback(null, self.arg1);
 };
 
 StreamingInRequest.prototype.withArg2 = function withArg2(callback) {

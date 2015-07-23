@@ -31,7 +31,6 @@ function StreamingOutRequest(id, options) {
     TChannelOutRequest.call(self, id, options);
     self.streamed = true;
     self._argstream = OutArgStream();
-    self.arg1 = self._argstream.arg1;
     self.arg2 = self._argstream.arg2;
     self.arg3 = self._argstream.arg3;
     self._argstream.errorEvent.on(passError);
@@ -60,13 +59,10 @@ StreamingOutRequest.prototype.type = 'tchannel.outgoing-request.streaming';
 StreamingOutRequest.prototype.send = function send(arg1, arg2, arg3, callback) {
     var self = this;
 
+    self.sendArg1(arg1);
+
     if (callback) {
         self.hookupCallback(callback);
-    }
-
-    self.arg1.end(arg1);
-    if (self.span) {
-        self.span.name = String(arg1);
     }
 
     self.arg2.end(arg2);
@@ -78,13 +74,13 @@ StreamingOutRequest.prototype.send = function send(arg1, arg2, arg3, callback) {
 StreamingOutRequest.prototype.sendStreams = function sendStreams(arg1, arg2, arg3, callback) {
     var self = this;
 
+    self.sendArg1(arg1);
+
     if (callback) {
         self.hookupStreamCallback(callback);
     }
 
-    pipelineStreams(
-        [arg1, arg2, arg3],
-        [self.arg1, self.arg2, self.arg3]);
+    pipelineStreams([arg2, arg3], [self.arg2, self.arg3]);
 
     return self;
 };
