@@ -168,7 +168,9 @@ Circuits.prototype.handleRequest = function handleRequest(req, buildRes, nextHan
             return buildRes().sendError('UnexpectedError', 'unable to buffer arg1');
         }
 
-        var circuit = self.getCircuit(callerName, serviceName, String(req.arg1));
+        var arg1 = String(req.arg1);
+        var circuit = self.getCircuit(callerName, serviceName, arg1);
+
         return circuit.handleRequest(req, buildRes, nextHandler);
     });
 };
