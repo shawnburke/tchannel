@@ -57,6 +57,11 @@ StreamingInRequest.prototype.handleFrame = function handleFrame(parts, isLast) {
     var self = this;
 
     if (self.state === States.Initial) {
+        if (parts.length < 2) {
+            // TODO: typed error
+            return new Error('all of arg1 must be in the first frame');
+        }
+
         self.state = States.Streaming;
     } else if (self.state !== States.Streaming) {
         // TODO: typed error
