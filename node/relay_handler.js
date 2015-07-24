@@ -38,6 +38,9 @@ RelayHandler.prototype.handleLazily = function handleLazily(conn, reqFrame) {
     var self = this;
 
     var peer = self.channel.peers.choosePeer(null);
+    if (self.circuits) {
+        throw new Error('not implemented');
+    }
     if (!peer) {
         onError(errors.NoPeerAvailable());
     } else {
