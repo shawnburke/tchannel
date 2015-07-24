@@ -151,19 +151,6 @@ Circuits.prototype.getCircuitTuples = function getCircuitTuples() {
     return tuples;
 };
 
-Circuits.prototype.handleRequest = function handleRequest(req, buildRes, nextHandler) {
-    var self = this;
-
-    self.monitorRequest(req, buildRes, function(err, req, buildRes) {
-        if (err) {
-            // TODO: classify error?
-            return buildRes().sendError('UnexpectedError', err.message);
-        }
-
-        nextHandler.handleRequest(req, buildRes);
-    });
-};
-
 Circuits.prototype.monitorRequest = function monitorRequest(req, buildRes, callback) {
     var self = this;
 
