@@ -151,8 +151,9 @@ Circuits.prototype.getCircuitTuples = function getCircuitTuples() {
     return tuples;
 };
 
-Circuits.prototype.handleRequest = function handleRequest(req, buildRes, nextHandler) {
+Circuits.prototype.monitorRequest = function monitorRequest(req, buildRes, callback) {
     var self = this;
+
     // Default the caller name.
     // All callers that fail to specifiy a cn share a circuit for each sn:en
     // and fail together.
@@ -161,9 +162,24 @@ Circuits.prototype.handleRequest = function handleRequest(req, buildRes, nextHan
     if (!serviceName) {
         return buildRes().sendError('BadRequest', 'All requests must have a service name');
     }
-    return req.withArg1(function withArg1() {
-        var circuit = self.getCircuit(callerName, serviceName, String(req.arg1));
-        return circuit.handleRequest(req, buildRes, nextHandler);
+
+    // TODO: killing arg1 streaming lets this be a simple "return the new
+    // wrapped buildRes" just like Circuit#monitorRequest
+    return req.withArg1(function withArg1(err, rawArg1) {
+        if (err) {
+            callback(err, req, buildRes);
+            return;
+        }
+
+        var arg1 = String(rawArg1);
+        var circuit = self.getCircuit(callerName, serviceName, arg1);
+
+        if (!circuit.state.shouldRequest()) {
+            return buildRes().sendError('Declined', 'Service is not healthy');
+        }
+
+        buildRes = circuit.monitorRequest(req, buildRes);
+        callback(null, req, buildRes);
     });
 };
 
@@ -203,16 +219,7 @@ inherits(Circuit, EventEmitter);
 
 Circuit.prototype.setState = StateMachine.prototype.setState;
 
-Circuit.prototype.handleRequest = function handleRequest(req, buildRes, nextHandler) {
-    var self = this;
-    if (self.state.shouldRequest()) {
-        return self.monitorRequest(req, buildRes, nextHandler);
-    } else {
-        return buildRes().sendError('Declined', 'Service is not healthy');
-    }
-};
-
-Circuit.prototype.monitorRequest = function monitorRequest(req, buildRes, nextHandler) {
+Circuit.prototype.monitorRequest = function monitorRequest(req, buildRes) {
     var self = this;
 
     self.state.onRequest(req);
@@ -229,7 +236,7 @@ Circuit.prototype.monitorRequest = function monitorRequest(req, buildRes, nextHa
         self.state.onRequestError(err);
     }
 
-    return nextHandler.handleRequest(req, monitorBuildRes);
+    return monitorBuildRes;
 };
 
 Circuit.prototype.monitorResponse = function monitorResponse(res) {
