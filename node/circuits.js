@@ -153,6 +153,20 @@ Circuits.prototype.getCircuitTuples = function getCircuitTuples() {
 
 Circuits.prototype.handleRequest = function handleRequest(req, buildRes, nextHandler) {
     var self = this;
+
+    self.monitorRequest(req, buildRes, function(err, req, buildRes) {
+        if (err) {
+            // TODO: classify error?
+            return buildRes().sendError('UnexpectedError', err.message);
+        }
+
+        nextHandler.handleRequest(req, buildRes);
+    });
+};
+
+Circuits.prototype.monitorRequest = function monitorRequest(req, buildRes, callback) {
+    var self = this;
+
     // Default the caller name.
     // All callers that fail to specifiy a cn share a circuit for each sn:en
     // and fail together.
@@ -162,10 +176,12 @@ Circuits.prototype.handleRequest = function handleRequest(req, buildRes, nextHan
         return buildRes().sendError('BadRequest', 'All requests must have a service name');
     }
 
+    // TODO: killing arg1 streaming lets this be a simple "return the new
+    // wrapped buildRes" just like Circuit#monitorRequest
     return req.withArg1(function withArg1(err, rawArg1) {
         if (err) {
-            // TODO: classify error?
-            return buildRes().sendError('UnexpectedError', 'unable to buffer arg1');
+            callback(err, req, buildRes);
+            return;
         }
 
         var arg1 = String(rawArg1);
@@ -176,7 +192,7 @@ Circuits.prototype.handleRequest = function handleRequest(req, buildRes, nextHan
         }
 
         buildRes = circuit.monitorRequest(req, buildRes);
-        return nextHandler.handleRequest(req, buildRes);
+        callback(null, req, buildRes);
     });
 };
 
