@@ -24,12 +24,15 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"runtime"
 	"sync"
 	"sync/atomic"
 
 	"github.com/uber/tchannel/golang/typed"
 	"golang.org/x/net/context"
 )
+
+const debugNewConnections = true
 
 // PeerInfo contains information about a TChannel peer
 type PeerInfo struct {
@@ -212,6 +215,12 @@ func (ch *Channel) newConnection(conn net.Conn, initialState connectionState, on
 	peerInfo := ch.PeerInfo()
 	log.Debugf("created for %v (%v) local: %v remote: %v",
 		peerInfo.ServiceName, peerInfo.ProcessName, conn.LocalAddr(), conn.RemoteAddr())
+
+	if debugNewConnections {
+		buf := make([]byte, 4096)
+		runtime.Stack(buf, false)
+		fmt.Printf("Conn 0x%x created at %s\n", connID, buf)
+	}
 	c := &Connection{
 		connID:        connID,
 		log:           log,
