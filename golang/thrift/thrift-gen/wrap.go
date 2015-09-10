@@ -173,7 +173,9 @@ func (m *Method) ArgList() string {
 	for _, arg := range m.Arguments() {
 		args = append(args, arg.Declaration())
 	}
-	return strings.Join(args, ", ")
+	al := strings.Join(args, ", ")
+	fmt.Printf(al)
+	return al
 }
 
 // CallList creates the call to a function satisfying Interface from an Args struct.

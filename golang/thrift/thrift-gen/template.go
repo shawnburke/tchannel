@@ -6,7 +6,7 @@ package {{ .Package }}
 
 import (
 "fmt"
-
+{{ .IncludeImport }}
 athrift "{{ .ThriftImport }}"
 "{{ .TChannelImport }}"
 )

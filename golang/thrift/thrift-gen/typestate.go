@@ -21,6 +21,8 @@
 package main
 
 import "github.com/samuel/go-thrift/parser"
+import "path/filepath"
+import "fmt"
 
 // State is global Thrift state for a file with type information.
 type State struct {
@@ -30,7 +32,59 @@ type State struct {
 
 // NewState parses the type information for a parsed Thrift file and returns the state.
 func NewState(v *parser.Thrift) *State {
-	return &State{v.Typedefs}
+	s := &State{v.Typedefs}
+
+	// walk the includes and register any exported types from those includes.
+	//
+	//
+	for _, v2 := range v.Includes {
+
+		_, types, err := getTypeInfo(v2)
+		if err == nil {
+			// merge the types info the parent
+			for k, v3 := range types {
+				s.typedefs[k] = v3
+			}
+		} else {
+			panic(fmt.Sprintf("Couldn't parse include '%s': '%v'", v2, err))
+		}
+	}
+	return s
+}
+
+// Extract the namespace and types from a thrift file.
+// For each of the types, it returns a map with the namespaced type for use
+// in the parent state
+//
+// package uber
+//
+// typedef UUID string
+// typedef num  int
+//
+// results in  "uber", {"uber.UUID":"string", "uber.num", "int"}
+//
+func getTypeInfo(filename string) (string, map[string]*parser.Type, error) {
+
+	if p2, err := parseFile(filename); err == nil {
+		parsed, ok := p2[filename]
+		if ok {
+			goName, ok := parsed.Namespaces["go"]
+			if !ok {
+				_, f := filepath.Split(filename)
+				// get the root filename foo.thrift -> foo
+				goName = f[0 : len(f)-len(filepath.Ext(f))]
+			}
+
+			ret := make(map[string]*parser.Type)
+			for k, v3 := range parsed.Typedefs {
+				ret[goName+"."+k] = v3
+			}
+			return goName, ret, nil
+		}
+	}
+
+	return "", nil, fmt.Errorf("Couldn't parse '%s'", filename)
+
 }
 
 func (s *State) isBasicType(thriftType string) bool {
